@@ -7,15 +7,23 @@ public class SphericalCursorModule : MonoBehaviour {
 	// This is a scale factor that determines how much to scale down the cursor based on its collision distance.
 	public float DistanceScaleFactor;
 
+	// Cursor colors.
+	public Color DefaultColor = new Color(0.5f, 0.5f, 0.5f);
+	public Color EnvironmentColor = new Color(1.0f, 1.0f, 1.0f);
+	public Color SelectedColor = new Color(0.0f, 0.8f, 1.0f);
+
 	// This is the layer mask to use when performing the ray cast for the objects.
-	// The furniture in the room is in layer 8, everything else is not.
-	private const int ColliderMask = (1 << 8);
+	// The furniture in the room is in SelectableObject, the floor is in Environment, everything else is Default.
+	private static int SelectableLayerMask = LayerMask.NameToLayer("SelectableObject");
+	private static int EnvironmentLayerMask = LayerMask.NameToLayer("Environment");
+	private static int ColliderMask = (1 << SelectableLayerMask) | (1 << EnvironmentLayerMask);
 
 	// This is the Cursor game object. Your job is to update its transform on each frame.
 	private GameObject Cursor;
 
 	// This is the Cursor mesh. (The sphere.)
 	private MeshRenderer CursorMeshRenderer;
+	private Renderer CursorRenderer;
 
 	// This is the scale to set the cursor to if no ray hit is found.
 	private Vector3 DefaultCursorScale = new Vector3(10.0f, 10.0f, 10.0f);
@@ -32,7 +40,8 @@ public class SphericalCursorModule : MonoBehaviour {
     void Awake() {
 		Cursor = transform.Find("Cursor").gameObject;
 		CursorMeshRenderer = Cursor.transform.GetComponentInChildren<MeshRenderer>();
-        CursorMeshRenderer.GetComponent<Renderer>().material.color = new Color(0.0f, 0.8f, 1.0f);
+		CursorRenderer = CursorMeshRenderer.GetComponent<Renderer>();
+        CursorRenderer.material.color = DefaultColor;
 		CursorScreenPos.x = Screen.width / 2.0f;
 		CursorScreenPos.y = Screen.height / 2.0f;
     }	
@@ -48,17 +57,23 @@ public class SphericalCursorModule : MonoBehaviour {
 		CursorScreenPos.y += mouseDy * Sensitivity;
 
 		// Perform ray cast to find object cursor is pointing at.
+		Selectable.CurrentSelection = null;
 		var ray = Camera.main.ScreenPointToRay(CursorScreenPos);
 		var cursorHit = new RaycastHit();
 		if (Physics.Raycast(ray, out cursorHit, MaxDistance, ColliderMask)) {
-			Cursor.transform.position = ray.GetPoint(cursorHit.distance);
+			Cursor.transform.position = cursorHit.point;
 			float scale = (cursorHit.distance * DistanceScaleFactor + 1.0f) / 2.0f;
 			Cursor.transform.localScale.Set(scale, scale, scale);
-			Selectable.CurrentSelection = cursorHit.collider.gameObject;
+			if (cursorHit.collider.gameObject.layer == SelectableLayerMask) {
+				Selectable.CurrentSelection = cursorHit.collider.gameObject;
+				CursorRenderer.material.color = SelectedColor;
+			} else {
+				CursorRenderer.material.color = EnvironmentColor;
+			}
 		} else {
 			Cursor.transform.position = ray.GetPoint(SphereRadius);
 			Cursor.transform.localScale = DefaultCursorScale;
-			Selectable.CurrentSelection = null;
+			CursorRenderer.material.color = DefaultColor;
 		}
 	}
 }
