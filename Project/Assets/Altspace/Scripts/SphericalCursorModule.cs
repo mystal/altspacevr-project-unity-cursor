@@ -57,7 +57,10 @@ public class SphericalCursorModule : MonoBehaviour {
 		CursorScreenPos.y += mouseDy * Sensitivity;
 
 		// Perform ray cast to find object cursor is pointing at.
-		Selectable.CurrentSelection = null;
+		Selectable.CurrentHighlight = null;
+		if (Input.GetButtonDown("Fire1")) {
+			Selectable.ClearSelection();
+		}
 		var ray = Camera.main.ScreenPointToRay(CursorScreenPos);
 		var cursorHit = new RaycastHit();
 		if (Physics.Raycast(ray, out cursorHit, MaxDistance, ColliderMask)) {
@@ -65,7 +68,10 @@ public class SphericalCursorModule : MonoBehaviour {
 			float scale = (cursorHit.distance * DistanceScaleFactor + 1.0f) / 2.0f;
 			Cursor.transform.localScale.Set(scale, scale, scale);
 			if (cursorHit.collider.gameObject.layer == SelectableLayerMask) {
-				Selectable.CurrentSelection = cursorHit.collider.gameObject;
+				if (Input.GetButtonDown("Fire1")) {
+					Selectable.Select(cursorHit.collider.gameObject);
+				}
+				Selectable.CurrentHighlight = cursorHit.collider.gameObject;
 				CursorRenderer.material.color = SelectedColor;
 			} else {
 				CursorRenderer.material.color = EnvironmentColor;

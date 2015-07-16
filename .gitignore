@@ -10,14 +10,14 @@ sysinfo.txt
 # Visual Studio/MonoDevelop/XCode generated
 
 *.booproj
-/*.csproj
+*.csproj
 *.DotSettings
 *.opensdf
 *.pdb
 *.pdb.meta
 *.pidb
 *.sdf
-/*.sln
+*.sln
 *.suo
 *.svd
 *.unityproj
