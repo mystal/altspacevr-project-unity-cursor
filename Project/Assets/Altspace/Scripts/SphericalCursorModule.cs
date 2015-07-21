@@ -14,9 +14,9 @@ public class SphericalCursorModule : MonoBehaviour {
 
 	// This is the layer mask to use when performing the ray cast for the objects.
 	// The furniture in the room is in SelectableObject, the floor is in Environment, everything else is Default.
-	private static int SelectableLayerMask = LayerMask.NameToLayer("SelectableObject");
-	private static int EnvironmentLayerMask = LayerMask.NameToLayer("Environment");
-	private static int ColliderMask = (1 << SelectableLayerMask) | (1 << EnvironmentLayerMask);
+	private static int SelectableLayerMask;
+	private static int EnvironmentLayerMask;
+	private static int ColliderMask;
 
 	// This is the Cursor game object. Your job is to update its transform on each frame.
 	private GameObject Cursor;
@@ -44,6 +44,10 @@ public class SphericalCursorModule : MonoBehaviour {
         CursorRenderer.material.color = DefaultColor;
 		CursorScreenPos.x = Screen.width / 2.0f;
 		CursorScreenPos.y = Screen.height / 2.0f;
+
+		SelectableLayerMask = LayerMask.NameToLayer("SelectableObject");
+		EnvironmentLayerMask = LayerMask.NameToLayer("Environment");
+		ColliderMask = (1 << SelectableLayerMask) | (1 << EnvironmentLayerMask);
     }	
 
 	void Update() {
