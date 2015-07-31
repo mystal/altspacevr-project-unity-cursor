@@ -16,6 +16,7 @@ public class SphericalCursorModule : MonoBehaviour {
 	// The furniture in the room is in SelectableObject, the floor is in Environment, everything else is Default.
 	private static int SelectableLayerMask;
 	private static int EnvironmentLayerMask;
+	private static int CubeLayerMask;
 	private static int ColliderMask;
 
 	// This is the Cursor game object. Your job is to update its transform on each frame.
@@ -47,7 +48,8 @@ public class SphericalCursorModule : MonoBehaviour {
 
 		SelectableLayerMask = LayerMask.NameToLayer("SelectableObject");
 		EnvironmentLayerMask = LayerMask.NameToLayer("Environment");
-		ColliderMask = (1 << SelectableLayerMask) | (1 << EnvironmentLayerMask);
+		CubeLayerMask = LayerMask.NameToLayer("Cube");
+		ColliderMask = (1 << SelectableLayerMask) | (1 << EnvironmentLayerMask)| (1 << CubeLayerMask);
     }	
 
 	void Update() {
@@ -71,14 +73,32 @@ public class SphericalCursorModule : MonoBehaviour {
 			Cursor.transform.position = cursorHit.point;
 			float scale = (cursorHit.distance * DistanceScaleFactor + 1.0f) / 2.0f;
 			Cursor.transform.localScale.Set(scale, scale, scale);
-			if (cursorHit.collider.gameObject.layer == SelectableLayerMask) {
+
+			GameObject hitObject = cursorHit.collider.gameObject;
+			if (hitObject.layer == SelectableLayerMask ||
+			    hitObject.layer == CubeLayerMask) {
 				if (Input.GetButtonDown("Fire1")) {
-					Selectable.Select(cursorHit.collider.gameObject);
+					Selectable.Select(hitObject);
 				}
-				Selectable.CurrentHighlight = cursorHit.collider.gameObject;
+				Selectable.CurrentHighlight = hitObject;
 				CursorRenderer.material.color = SelectedColor;
 			} else {
 				CursorRenderer.material.color = EnvironmentColor;
+			}
+			
+			// Check if physics should be changed!
+			if (Input.GetButtonDown("Fire2") && hitObject.layer == CubeLayerMask) {
+				// Get cube's gravity vector.
+				Vector3 gravity = hitObject.GetComponent<WallGravity>().gravity;
+				// Check if any items are selected.
+				GameObject selected = Selectable.GetCurrentSelection();
+				if (selected != null) {
+					// Change the selected object's gravity.
+					selected.GetComponent<ControllableGravity>().gravity = gravity;
+					//gravity.gravity *= -1;
+				} else {
+					// Change player's gravity!
+				}
 			}
 		} else {
 			Cursor.transform.position = ray.GetPoint(SphereRadius);

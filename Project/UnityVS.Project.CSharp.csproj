@@ -74,7 +74,10 @@
   <ItemGroup>
     <Compile Include="Assets\Altspace\Scripts\LockCursor.cs" />
     <Compile Include="Assets\Altspace\Scripts\SphericalCursorModule.cs" />
+    <Compile Include="Assets\ControllableGravity.cs" />
+    <Compile Include="Assets\Scripts\MouseLook.cs" />
     <Compile Include="Assets\Selectable.cs" />
+    <Compile Include="Assets\WallGravity.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\Altspace\Shaders\CursorShader.shader" />

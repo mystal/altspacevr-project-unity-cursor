@@ -3,8 +3,11 @@ using System.Collections;
 using System.Collections.Generic;
 
 public class Selectable : MonoBehaviour {
+	public bool isSelectable = true;
+
 	public static GameObject CurrentHighlight { get; set; }
-	private static IList<GameObject> CurrentSelection = new List<GameObject>();
+	// TODO: Make this a GameObject unless if we add support for multiselect.
+	private static List<GameObject> CurrentSelection = new List<GameObject>();
 
 	public Material NormalMaterial;
 	public Material HighlightMaterial;
@@ -29,7 +32,18 @@ public class Selectable : MonoBehaviour {
 	}
 
 	public static void Select(GameObject gameObject) {
-		CurrentSelection.Add(gameObject);
+		// This is only called on a user's click, so shouldn't hurt performance much.
+		Selectable selectable = gameObject.GetComponent<Selectable>();
+		if (selectable != null && selectable.isSelectable) {
+			CurrentSelection.Add(gameObject);
+		}
+	}
+
+	public static GameObject GetCurrentSelection() {
+		if (CurrentSelection.Count > 0) {
+			return CurrentSelection[0];
+		}
+		return null;
 	}
 
 	public static void ClearSelection() {
