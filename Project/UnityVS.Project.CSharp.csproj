@@ -74,6 +74,7 @@
   <ItemGroup>
     <Compile Include="Assets\Altspace\Scripts\LockCursor.cs" />
     <Compile Include="Assets\Altspace\Scripts\SphericalCursorModule.cs" />
+    <Compile Include="Assets\BallShooter.cs" />
     <Compile Include="Assets\ControllableGravity.cs" />
     <Compile Include="Assets\Scripts\MouseLook.cs" />
     <Compile Include="Assets\Selectable.cs" />
