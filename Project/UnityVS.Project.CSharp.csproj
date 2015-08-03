@@ -74,11 +74,12 @@
   <ItemGroup>
     <Compile Include="Assets\Altspace\Scripts\LockCursor.cs" />
     <Compile Include="Assets\Altspace\Scripts\SphericalCursorModule.cs" />
-    <Compile Include="Assets\BallShooter.cs" />
-    <Compile Include="Assets\ControllableGravity.cs" />
+    <Compile Include="Assets\Scripts\BallShooter.cs" />
+    <Compile Include="Assets\Scripts\ControllableGravity.cs" />
     <Compile Include="Assets\Scripts\MouseLook.cs" />
-    <Compile Include="Assets\Selectable.cs" />
-    <Compile Include="Assets\WallGravity.cs" />
+    <Compile Include="Assets\Scripts\ObjectDragger.cs" />
+    <Compile Include="Assets\Scripts\Selectable.cs" />
+    <Compile Include="Assets\Scripts\WallGravity.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\Altspace\Shaders\CursorShader.shader" />
