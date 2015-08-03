@@ -38,6 +38,10 @@ public class SphericalCursorModule : MonoBehaviour {
 	// Screen position the cursor is currently at.
 	private Vector3 CursorScreenPos = new Vector3();
 
+	// Data for dragging objects around.
+	private GameObject objectDragger;
+	private float cursorDragRadius = 0;
+
     void Awake() {
 		Cursor = transform.Find("Cursor").gameObject;
 		CursorMeshRenderer = Cursor.transform.GetComponentInChildren<MeshRenderer>();
@@ -54,6 +58,7 @@ public class SphericalCursorModule : MonoBehaviour {
 
 	void Update() {
 		UpdateCursor();
+		UpdateObjectDragger();
 	}
 
 	private void UpdateCursor() {
@@ -70,15 +75,24 @@ public class SphericalCursorModule : MonoBehaviour {
 		var ray = Camera.main.ScreenPointToRay(CursorScreenPos);
 		var cursorHit = new RaycastHit();
 		if (Physics.Raycast(ray, out cursorHit, MaxDistance, ColliderMask)) {
-			Cursor.transform.position = cursorHit.point;
-			float scale = (cursorHit.distance * DistanceScaleFactor + 1.0f) / 2.0f;
-			Cursor.transform.localScale.Set(scale, scale, scale);
+			if (objectDragger == null) {
+				Cursor.transform.position = cursorHit.point;
+				float scale = (cursorHit.distance * DistanceScaleFactor + 1.0f) / 2.0f;
+				Cursor.transform.localScale.Set(scale, scale, scale);
+			} else {
+				// If dragging, keep Cursor locked at initial radius object was at.
+				Cursor.transform.position = ray.GetPoint(cursorDragRadius);
+				float scale = (cursorDragRadius * DistanceScaleFactor + 1.0f) / 2.0f;
+				Cursor.transform.localScale.Set(scale, scale, scale);
+			}
 
 			GameObject hitObject = cursorHit.collider.gameObject;
 			if (hitObject.layer == SelectableLayerMask ||
 			    hitObject.layer == CubeLayerMask) {
 				if (Input.GetButtonDown("Fire1")) {
 					Selectable.Select(hitObject);
+					// Set radius to lock Cursor at if dragging.
+					cursorDragRadius = cursorHit.distance;
 				}
 				Selectable.CurrentHighlight = hitObject;
 				CursorRenderer.material.color = SelectedColor;
@@ -95,9 +109,8 @@ public class SphericalCursorModule : MonoBehaviour {
 				if (selected != null) {
 					// Change the selected object's gravity.
 					selected.GetComponent<ControllableGravity>().gravity = gravity;
-					//gravity.gravity *= -1;
 				} else {
-					// Change player's gravity!
+					// TODO: Change player's gravity!
 				}
 			}
 		} else {
@@ -105,5 +118,43 @@ public class SphericalCursorModule : MonoBehaviour {
 			Cursor.transform.localScale = DefaultCursorScale;
 			CursorRenderer.material.color = DefaultColor;
 		}
+	}
+
+	private void UpdateObjectDragger() {
+		GameObject selected = Selectable.GetCurrentSelection();
+		if (Input.GetButtonDown("Fire1") && selected != null) {
+			// Create joint.
+			Rigidbody selectedRigidbody = selected.GetComponent<Rigidbody>();
+			objectDragger = new GameObject("Object Dragger");
+			objectDragger.transform.parent = Cursor.transform;
+			Rigidbody body = objectDragger.AddComponent<Rigidbody>();
+			body.isKinematic = true;
+
+			// TODO: Finish this!
+			var joint = objectDragger.AddComponent<FixedJoint>();
+			joint.connectedBody = selectedRigidbody;
+			/*ConfigurableJoint joint = objectDragger.AddComponent<ConfigurableJoint>();
+			joint.connectedBody = selectedRigidbody;
+			//joint.configuredInWorldSpace = true;
+			float force = 600;
+			float damping = 6;
+			joint.xDrive = CreateJointDrive(force, damping);
+			joint.yDrive = CreateJointDrive(force, damping);
+			joint.zDrive = CreateJointDrive(force, damping);
+			joint.slerpDrive = CreateJointDrive(force, damping);
+			joint.rotationDriveMode = RotationDriveMode.Slerp;*/
+		} else if (Input.GetButtonUp("Fire1")) {
+			// Delete joint.
+			Destroy(objectDragger);
+		}
+	}
+
+	private JointDrive CreateJointDrive(float force, float damping) {
+		JointDrive drive = new JointDrive();
+		drive.maximumForce = Mathf.Infinity;
+		drive.mode = JointDriveMode.Position;
+		drive.positionSpring = force;
+		drive.positionDamper = damping;
+		return drive;
 	}
 }

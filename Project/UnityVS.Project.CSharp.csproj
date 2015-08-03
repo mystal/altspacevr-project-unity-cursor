@@ -77,7 +77,6 @@
     <Compile Include="Assets\Scripts\BallShooter.cs" />
     <Compile Include="Assets\Scripts\ControllableGravity.cs" />
     <Compile Include="Assets\Scripts\MouseLook.cs" />
-    <Compile Include="Assets\Scripts\ObjectDragger.cs" />
     <Compile Include="Assets\Scripts\Selectable.cs" />
     <Compile Include="Assets\Scripts\WallGravity.cs" />
   </ItemGroup>
