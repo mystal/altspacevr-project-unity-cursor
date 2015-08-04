@@ -6,8 +6,7 @@ public class Selectable : MonoBehaviour {
 	public bool isSelectable = true;
 
 	public static GameObject CurrentHighlight { get; set; }
-	// TODO: Make this a GameObject unless if we add support for multiselect.
-	private static List<GameObject> CurrentSelection = new List<GameObject>();
+	private static GameObject CurrentSelection;
 
 	public Material NormalMaterial;
 	public Material HighlightMaterial;
@@ -23,7 +22,7 @@ public class Selectable : MonoBehaviour {
 		if (gameObject == CurrentHighlight) {
 			SetMaterial(HighlightMaterial);
 		}
-		else if (CurrentSelection.Contains(gameObject)) {
+		else if (gameObject == CurrentSelection) {
 			SetMaterial(SelectionMaterial);
 		}
 		else {
@@ -32,22 +31,18 @@ public class Selectable : MonoBehaviour {
 	}
 
 	public static void Select(GameObject gameObject) {
-		// This is only called on a user's click, so shouldn't hurt performance much.
 		Selectable selectable = gameObject.GetComponent<Selectable>();
 		if (selectable != null && selectable.isSelectable) {
-			CurrentSelection.Add(gameObject);
+			CurrentSelection = gameObject;
 		}
 	}
 
 	public static GameObject GetCurrentSelection() {
-		if (CurrentSelection.Count > 0) {
-			return CurrentSelection[0];
-		}
-		return null;
+		return CurrentSelection;
 	}
 
 	public static void ClearSelection() {
-		CurrentSelection.Clear();
+		CurrentSelection = null;
 	}
 
 	private void SetMaterial(Material material) {
