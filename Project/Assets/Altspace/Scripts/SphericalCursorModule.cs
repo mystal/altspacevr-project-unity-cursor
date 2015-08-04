@@ -21,9 +21,6 @@ public class SphericalCursorModule : MonoBehaviour {
 
 	// This is the Cursor game object. Your job is to update its transform on each frame.
 	private GameObject Cursor;
-
-	// This is the Cursor mesh. (The sphere.)
-	private MeshRenderer CursorMeshRenderer;
 	private Renderer CursorRenderer;
 
 	// This is the scale to set the cursor to if no ray hit is found.
@@ -36,7 +33,7 @@ public class SphericalCursorModule : MonoBehaviour {
 	private const float SphereRadius = 10.0f;
 
 	// Screen position the cursor is currently at.
-	private Vector3 CursorScreenPos = new Vector3();
+	private Vector3 CursorScreenPos;
 
 	// Data for dragging objects around.
 	private GameObject objectDragger;
@@ -44,9 +41,11 @@ public class SphericalCursorModule : MonoBehaviour {
 
     void Awake() {
 		Cursor = transform.Find("Cursor").gameObject;
-		CursorMeshRenderer = Cursor.transform.GetComponentInChildren<MeshRenderer>();
-		CursorRenderer = CursorMeshRenderer.GetComponent<Renderer>();
+		var cursorMeshRenderer = Cursor.transform.GetComponentInChildren<MeshRenderer>();
+		CursorRenderer = cursorMeshRenderer.GetComponent<Renderer>();
         CursorRenderer.material.color = DefaultColor;
+
+		// Initialize Cursor to middle of screen.
 		CursorScreenPos.x = Screen.width / 2.0f;
 		CursorScreenPos.y = Screen.height / 2.0f;
 
@@ -57,35 +56,58 @@ public class SphericalCursorModule : MonoBehaviour {
     }	
 
 	void Update() {
-		UpdateCursor();
+		UpdateCursorScreenPos();
+
+		var cursorHit = new RaycastHit();
+		var ray = RaycastFromCursorScreenPos(out cursorHit);
+		UpdateCursorPositionAndScale(ray, cursorHit);
+		UpdateCursorSelections(cursorHit);
+
+		UpdateObjectPhysics(cursorHit);
 		UpdateObjectDragger();
 	}
-
-	private void UpdateCursor() {
+	
+	private void UpdateCursorScreenPos() {
 		float mouseDx = Input.GetAxisRaw("Mouse X");
 		float mouseDy = Input.GetAxisRaw("Mouse Y");
 		CursorScreenPos.x += mouseDx * Sensitivity;
 		CursorScreenPos.y += mouseDy * Sensitivity;
+	}
+	
+	private Ray RaycastFromCursorScreenPos(out RaycastHit cursorHit) {
+		// Sigh, no Tuples...
+		var ray = Camera.main.ScreenPointToRay(CursorScreenPos);
+		Physics.Raycast(ray, out cursorHit, MaxDistance, ColliderMask);
+		return ray;
+	}
 
-		// Perform ray cast to find object cursor is pointing at.
+	private void UpdateCursorPositionAndScale(Ray ray, RaycastHit cursorHit) {
+		if (DraggingObject()) {
+			// Keep Cursor locked at initial radius that object was at.
+			Cursor.transform.position = ray.GetPoint(cursorDragRadius);
+			float scale = (cursorDragRadius * DistanceScaleFactor + 1.0f) / 2.0f;
+			Cursor.transform.localScale.Set(scale, scale, scale);
+		} else if (cursorHit.collider != null) {
+			// Move Cursor to hit position and scale it.
+			Cursor.transform.position = cursorHit.point;
+			float scale = (cursorHit.distance * DistanceScaleFactor + 1.0f) / 2.0f;
+			Cursor.transform.localScale.Set(scale, scale, scale);
+		} else {
+			// Set Cursor at a point on a virtual sphere.
+			Cursor.transform.position = ray.GetPoint(SphereRadius);
+			Cursor.transform.localScale = DefaultCursorScale;
+			CursorRenderer.material.color = DefaultColor;
+		}
+	}
+
+	private void UpdateCursorSelections(RaycastHit cursorHit) {
+		// Clear old highlight and selection.
 		Selectable.CurrentHighlight = null;
 		if (Input.GetButtonDown("Fire1")) {
 			Selectable.ClearSelection();
 		}
-		var ray = Camera.main.ScreenPointToRay(CursorScreenPos);
-		var cursorHit = new RaycastHit();
-		if (Physics.Raycast(ray, out cursorHit, MaxDistance, ColliderMask)) {
-			if (objectDragger == null) {
-				Cursor.transform.position = cursorHit.point;
-				float scale = (cursorHit.distance * DistanceScaleFactor + 1.0f) / 2.0f;
-				Cursor.transform.localScale.Set(scale, scale, scale);
-			} else {
-				// If dragging, keep Cursor locked at initial radius object was at.
-				Cursor.transform.position = ray.GetPoint(cursorDragRadius);
-				float scale = (cursorDragRadius * DistanceScaleFactor + 1.0f) / 2.0f;
-				Cursor.transform.localScale.Set(scale, scale, scale);
-			}
 
+		if (cursorHit.collider != null) {
 			GameObject hitObject = cursorHit.collider.gameObject;
 			if (hitObject.layer == SelectableLayerMask ||
 			    hitObject.layer == CubeLayerMask) {
@@ -99,12 +121,14 @@ public class SphericalCursorModule : MonoBehaviour {
 			} else {
 				CursorRenderer.material.color = EnvironmentColor;
 			}
-			
-			// Check if physics should be changed!
+		}
+	}
+
+	private void UpdateObjectPhysics(RaycastHit cursorHit) {
+		if (cursorHit.collider != null) {
+			GameObject hitObject = cursorHit.collider.gameObject;
 			if (Input.GetButtonDown("Fire2") && hitObject.layer == CubeLayerMask) {
-				// Get cube's gravity vector.
 				Vector3 gravity = hitObject.GetComponent<WallGravity>().gravity;
-				// Check if any items are selected.
 				GameObject selected = Selectable.GetCurrentSelection();
 				if (selected != null) {
 					// Change the selected object's gravity.
@@ -113,48 +137,29 @@ public class SphericalCursorModule : MonoBehaviour {
 					// TODO: Change player's gravity!
 				}
 			}
-		} else {
-			Cursor.transform.position = ray.GetPoint(SphereRadius);
-			Cursor.transform.localScale = DefaultCursorScale;
-			CursorRenderer.material.color = DefaultColor;
 		}
 	}
 
 	private void UpdateObjectDragger() {
 		GameObject selected = Selectable.GetCurrentSelection();
 		if (Input.GetButtonDown("Fire1") && selected != null) {
-			// Create joint.
+			// Create joint and attach it to the Cursor.
 			Rigidbody selectedRigidbody = selected.GetComponent<Rigidbody>();
 			objectDragger = new GameObject("Object Dragger");
 			objectDragger.transform.parent = Cursor.transform;
 			Rigidbody body = objectDragger.AddComponent<Rigidbody>();
 			body.isKinematic = true;
 
-			// TODO: Finish this!
+			// TODO: Use a joint type that lets the object move according to physics.
 			var joint = objectDragger.AddComponent<FixedJoint>();
 			joint.connectedBody = selectedRigidbody;
-			/*ConfigurableJoint joint = objectDragger.AddComponent<ConfigurableJoint>();
-			joint.connectedBody = selectedRigidbody;
-			//joint.configuredInWorldSpace = true;
-			float force = 600;
-			float damping = 6;
-			joint.xDrive = CreateJointDrive(force, damping);
-			joint.yDrive = CreateJointDrive(force, damping);
-			joint.zDrive = CreateJointDrive(force, damping);
-			joint.slerpDrive = CreateJointDrive(force, damping);
-			joint.rotationDriveMode = RotationDriveMode.Slerp;*/
 		} else if (Input.GetButtonUp("Fire1")) {
 			// Delete joint.
 			Destroy(objectDragger);
 		}
 	}
 
-	private JointDrive CreateJointDrive(float force, float damping) {
-		JointDrive drive = new JointDrive();
-		drive.maximumForce = Mathf.Infinity;
-		drive.mode = JointDriveMode.Position;
-		drive.positionSpring = force;
-		drive.positionDamper = damping;
-		return drive;
+	private bool DraggingObject() {
+		return objectDragger != null;
 	}
 }
